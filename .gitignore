@@ -1,7 +1,5 @@
 node_modules
 .vercel
-.tanstack
-screenshots
-artifacts
-.grok
 dist
+screenshots
+*.log

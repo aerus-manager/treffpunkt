@@ -14,7 +14,9 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
   const [blurb, setBlurb] = useState(existing?.blurb ?? "");
   const [countMode, setCountMode] = useState<CountMode>(existing?.countMode ?? "all");
   const [start, setStart] = useState<StartPosition>(existing?.start ?? "hylster");
-  const [distance, setDistance] = useState(existing?.distanceM != null ? String(existing.distanceM) : "7");
+  const [distance, setDistance] = useState(
+    existing?.distanceM != null ? String(existing.distanceM) : "7",
+  );
   const [steel, setSteel] = useState(existing?.steel ?? 0);
   const [papers, setPapers] = useState(
     existing?.papers ?? [{ id: crypto.randomUUID(), label: "Skive 1", requiredHits: 6 }],
@@ -33,7 +35,10 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
       return;
     }
     const parsedDistance = distance.trim() === "" ? null : Number(distance.replace(",", "."));
-    if (parsedDistance != null && (!Number.isFinite(parsedDistance) || parsedDistance <= 0 || parsedDistance > 300)) {
+    if (
+      parsedDistance != null &&
+      (!Number.isFinite(parsedDistance) || parsedDistance <= 0 || parsedDistance > 300)
+    ) {
       setError("Avstanden må være mellom 1 og 300 meter.");
       return;
     }
@@ -58,7 +63,11 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
 
   return (
     <main className="px-4 pt-4">
-      <button type="button" onClick={onDone} className="inline-flex h-11 items-center gap-1 text-sm text-muted">
+      <button
+        type="button"
+        onClick={onDone}
+        className="inline-flex h-11 items-center gap-1 text-sm text-muted"
+      >
         <ChevronLeft className="size-4" aria-hidden="true" />
         Driller
       </button>
@@ -86,8 +95,16 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
       <fieldset className="mt-5">
         <legend className="text-sm text-muted">Hvordan treffene teller</legend>
         <div className="mt-2 grid grid-cols-2 gap-2">
-          <Choice active={countMode === "all"} onClick={() => setCountMode("all")} label="Alle skudd" />
-          <Choice active={countMode === "best"} onClick={() => setCountMode("best")} label="Beste treff" />
+          <Choice
+            active={countMode === "all"}
+            onClick={() => setCountMode("all")}
+            label="Alle skudd"
+          />
+          <Choice
+            active={countMode === "best"}
+            onClick={() => setCountMode("best")}
+            label="Beste treff"
+          />
         </div>
         <p className="mt-2 text-sm text-muted">
           {countMode === "all"
@@ -99,7 +116,12 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
         <legend className="text-sm text-muted">Start</legend>
         <div className="mt-2 grid grid-cols-2 gap-2">
           {STARTS.map((item) => (
-            <Choice key={item} active={start === item} onClick={() => setStart(item)} label={START_LABEL[item]} />
+            <Choice
+              key={item}
+              active={start === item}
+              onClick={() => setStart(item)}
+              label={START_LABEL[item]}
+            />
           ))}
         </div>
       </fieldset>
@@ -127,7 +149,7 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
                       {
                         id: crypto.randomUUID(),
                         label: `Skive ${current.length + 1}`,
-                        requiredHits: countMode === "best" ? 2 : 2,
+                        requiredHits: 2,
                       },
                     ],
               )
@@ -144,7 +166,9 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
                   value={paper.label}
                   onChange={(event) =>
                     setPapers((current) =>
-                      current.map((item) => (item.id === paper.id ? { ...item, label: event.target.value } : item)),
+                      current.map((item) =>
+                        item.id === paper.id ? { ...item, label: event.target.value } : item,
+                      ),
                     )
                   }
                   className="h-11 min-w-0 flex-1 rounded-lg border border-line bg-bg px-3 text-base"
@@ -153,7 +177,9 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
                 <button
                   type="button"
                   className="h-11 px-2 text-sm text-muted"
-                  onClick={() => setPapers((current) => current.filter((item) => item.id !== paper.id))}
+                  onClick={() =>
+                    setPapers((current) => current.filter((item) => item.id !== paper.id))
+                  }
                 >
                   Fjern
                 </button>
@@ -166,7 +192,9 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
                   max={12}
                   onChange={(value) =>
                     setPapers((current) =>
-                      current.map((item) => (item.id === paper.id ? { ...item, requiredHits: value } : item)),
+                      current.map((item) =>
+                        item.id === paper.id ? { ...item, requiredHits: value } : item,
+                      ),
                     )
                   }
                 />
@@ -178,7 +206,11 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
       <div className="mt-4 rounded-card border border-line bg-surface p-3">
         <Stepper label="Stål som må falle" value={steel} min={0} max={8} onChange={setSteel} />
       </div>
-      {error ? <p className="mt-4 text-sm text-miss">{error}</p> : null}
+      {error ? (
+        <p className="mt-4 text-sm text-miss" role="alert">
+          {error}
+        </p>
+      ) : null}
       <button
         type="button"
         onClick={save}
@@ -193,6 +225,7 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
           onClick={() => {
             if (!confirmDelete) {
               setConfirmDelete(true);
+              window.setTimeout(() => setConfirmDelete(false), 4000);
               return;
             }
             deleteDrill(existing.id);
@@ -206,7 +239,15 @@ export function DrillForm({ drillId, onDone }: { drillId?: string; onDone: () =>
   );
 }
 
-function Choice({ active, label, onClick }: { active: boolean; label: string; onClick: () => void }) {
+function Choice({
+  active,
+  label,
+  onClick,
+}: {
+  active: boolean;
+  label: string;
+  onClick: () => void;
+}) {
   return (
     <button
       type="button"

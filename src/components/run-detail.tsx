@@ -30,7 +30,7 @@ export function RunDetail({
     return (
       <main className="px-4 pt-6">
         <p>Økta er slettet.</p>
-        <button type="button" className="mt-4 text-brass" onClick={onBack}>
+        <button type="button" className="mt-4 h-11 text-brass" onClick={onBack}>
           Til loggen
         </button>
       </main>
@@ -43,14 +43,20 @@ export function RunDetail({
 
   return (
     <main className="px-4 pt-4">
-      <button type="button" onClick={onBack} className="inline-flex h-11 items-center gap-1 text-sm text-muted">
+      <button
+        type="button"
+        onClick={onBack}
+        className="inline-flex h-11 items-center gap-1 text-sm text-muted"
+      >
         <ChevronLeft className="size-4" aria-hidden="true" />
-        Logg
+        Mine økter
       </button>
       <h1 className="mt-1 font-score text-4xl leading-none">{run.drillName}</h1>
       <p className="mt-2 text-sm text-muted">
-        {dayLabel(run.at)} {clockLabel(run.at)} · {run.power === "minor" ? "Minor" : "Major"} · {START_LABEL[run.start]}
-        {run.distanceM != null ? ` · ${String(run.distanceM).replace(".", ",")} m` : ""} · {formatTime(run.timeSec)} s
+        {dayLabel(run.at)} {clockLabel(run.at)} · {run.power === "minor" ? "Minor" : "Major"} ·{" "}
+        {START_LABEL[run.start]}
+        {run.distanceM != null ? ` · ${String(run.distanceM).replace(".", ",")} m` : ""} ·{" "}
+        {formatTime(run.timeSec)} s
       </p>
       {run.note ? <p className="mt-2 text-sm">{run.note}</p> : null}
 
@@ -62,7 +68,9 @@ export function RunDetail({
               type="button"
               onClick={() => setActiveId(paper.id)}
               className={`h-11 shrink-0 rounded-full border px-4 text-sm ${
-                paper.id === active.id ? "border-brass bg-brass text-brass-ink" : "border-line bg-surface"
+                paper.id === active.id
+                  ? "border-brass bg-brass text-brass-ink"
+                  : "border-line bg-surface"
               }`}
             >
               {paper.label}
@@ -92,7 +100,11 @@ export function RunDetail({
       </section>
 
       <div className="mt-4 grid grid-cols-2 gap-2">
-        <button type="button" onClick={onEdit} className="h-12 rounded-full border border-line text-sm font-medium">
+        <button
+          type="button"
+          onClick={onEdit}
+          className="h-12 rounded-full border border-line text-sm font-medium"
+        >
           Endre
         </button>
         {drill ? (
@@ -113,13 +125,14 @@ export function RunDetail({
         onClick={() => {
           if (!confirm) {
             setConfirm(true);
+            window.setTimeout(() => setConfirm(false), 4000);
             return;
           }
           deleteRun(run.id);
           onDeleted();
         }}
       >
-        {confirm ? "Bekreft sletting" : "Slett økt"}
+        {confirm ? "Trykk igjen for å slette for godt" : "Slett økt"}
       </button>
     </main>
   );

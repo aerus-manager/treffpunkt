@@ -6,6 +6,8 @@ export type RingShot = {
   score: number;
   innerTen: boolean;
   targetIndex: number;
+  /** Entered as a ring value without a position; not drawn on the target. */
+  manual?: boolean;
 };
 
 export type SealedSeries = {
@@ -25,6 +27,7 @@ export type RingSession = {
   sealed: SealedSeries[];
   at: string;
   touched: string;
+  profileId?: string;
 };
 
 export function createSession(program: ProgramDef, place: string): RingSession {
@@ -44,7 +47,11 @@ export function createSession(program: ProgramDef, place: string): RingSession {
   };
 }
 
-export function sessionPoints(session: RingSession): { points: number; inner: number; shots: number } {
+export function sessionPoints(session: RingSession): {
+  points: number;
+  inner: number;
+  shots: number;
+} {
   const shots = [...session.sealed.flatMap((series) => series.shots), ...session.current];
   return {
     points: shots.reduce((sum, shot) => sum + shot.score, 0),
@@ -78,4 +85,40 @@ export function sealSeries(session: RingSession, program: ProgramDef): RingSessi
     status,
     touched: new Date().toISOString(),
   };
+}
+
+/** Where the session stands after `sealedCount` finished series. */
+export function positionAfter(
+  program: ProgramDef,
+  sealedCount: number,
+): { stageIndex: number; seriesDoneInStage: number; done: boolean } {
+  let left = sealedCount;
+  for (let index = 0; index < program.stages.length; index += 1) {
+    const count = program.stages[index].seriesCount;
+    if (left < count) return { stageIndex: index, seriesDoneInStage: left, done: false };
+    left -= count;
+  }
+  return { stageIndex: program.stages.length, seriesDoneInStage: 0, done: true };
+}
+
+/** Undo "next series": move the last sealed series back into the open series. */
+export function reopenLastSeries(session: RingSession, program: ProgramDef): RingSession {
+  if (session.current.length > 0 || session.sealed.length === 0) return session;
+  const sealed = session.sealed.slice(0, -1);
+  const last = session.sealed[session.sealed.length - 1];
+  const position = positionAfter(program, sealed.length);
+  return {
+    ...session,
+    sealed,
+    current: last.shots,
+    stageIndex: position.stageIndex,
+    seriesDoneInStage: position.seriesDoneInStage,
+    status: "open",
+    touched: new Date().toISOString(),
+  };
+}
+
+/** Round a coordinate to 0.1 mm: plenty for scoring, and keeps the stored diary small. */
+export function roundMm(value: number): number {
+  return Math.round(value * 10) / 10;
 }

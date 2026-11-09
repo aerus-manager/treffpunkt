@@ -67,19 +67,54 @@ export function IpscTarget({ shots, interactive = true, onPlace, onRemove, label
         stroke="var(--color-board-ink)"
         strokeWidth="2"
       />
-      <text x="225" y="230" textAnchor="middle" fill="var(--color-board-ink)" fontSize="28" opacity="0.45">
+      <text
+        x="225"
+        y="230"
+        textAnchor="middle"
+        fill="var(--color-board-ink)"
+        fontSize="28"
+        opacity="0.45"
+      >
         A
       </text>
-      <text x="112" y="230" textAnchor="middle" fill="var(--color-board-ink)" fontSize="20" opacity="0.4">
+      <text
+        x="112"
+        y="230"
+        textAnchor="middle"
+        fill="var(--color-board-ink)"
+        fontSize="20"
+        opacity="0.4"
+      >
         C
       </text>
-      <text x="338" y="230" textAnchor="middle" fill="var(--color-board-ink)" fontSize="20" opacity="0.4">
+      <text
+        x="338"
+        y="230"
+        textAnchor="middle"
+        fill="var(--color-board-ink)"
+        fontSize="20"
+        opacity="0.4"
+      >
         C
       </text>
-      <text x="36" y="290" textAnchor="middle" fill="var(--color-board-ink)" fontSize="18" opacity="0.45">
+      <text
+        x="36"
+        y="290"
+        textAnchor="middle"
+        fill="var(--color-board-ink)"
+        fontSize="18"
+        opacity="0.45"
+      >
         D
       </text>
-      <text x="414" y="290" textAnchor="middle" fill="var(--color-board-ink)" fontSize="18" opacity="0.45">
+      <text
+        x="414"
+        y="290"
+        textAnchor="middle"
+        fill="var(--color-board-ink)"
+        fontSize="18"
+        opacity="0.45"
+      >
         D
       </text>
       {shots.map((shot, index) => (

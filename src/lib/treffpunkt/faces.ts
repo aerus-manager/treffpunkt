@@ -61,7 +61,11 @@ export function highestRing(face: Face): number {
 }
 
 /** Whole-ring score with the gauge counted outward, same rule as the diary. */
-export function scoreShot(face: Face, xMm: number, yMm: number): { score: number; innerTen: boolean } {
+export function scoreShot(
+  face: Face,
+  xMm: number,
+  yMm: number,
+): { score: number; innerTen: boolean } {
   const distance = Math.hypot(xMm, yMm);
   const pellet = face.caliberMm / 2;
   let score = 0;

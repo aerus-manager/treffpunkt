@@ -18,7 +18,12 @@ export type ProgramDef = {
   stages: StageDef[];
 };
 
-const air = (name: string, shotsPerSeries: number, seriesCount: number, face: FaceId): StageDef => ({
+const air = (
+  name: string,
+  shotsPerSeries: number,
+  seriesCount: number,
+  face: FaceId,
+): StageDef => ({
   name,
   face,
   caliberMm: 4.5,
