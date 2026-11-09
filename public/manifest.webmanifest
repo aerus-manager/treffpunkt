@@ -1,0 +1,12 @@
+{
+  "name": "Treffpunkt",
+  "short_name": "Treffpunkt",
+  "description": "Skytedagbok for NSF-programmer, med IPSC-driller, tid og hit factor.",
+  "lang": "nb",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#14120f",
+  "theme_color": "#14120f",
+  "icons": [{ "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}
