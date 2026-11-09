@@ -39,12 +39,13 @@ export function IpscTarget({ shots, interactive = true, onPlace, onRemove, label
 
   return (
     <svg
-      viewBox={`-16 -16 ${TARGET_W + 32} ${TARGET_H + 32}`}
+      viewBox={`-8 -12 ${TARGET_W + 16} ${TARGET_H + 210}`}
       className="h-auto w-full touch-none select-none"
       role="img"
       aria-label={label}
       onPointerDown={handlePointer}
     >
+      <rect x={-5} y={-8} width={TARGET_W + 10} height={TARGET_H + 198} rx={6} fill="#efe6d4" />
       <polygon points={polyPoints(OUTER)} fill="var(--color-board-d)" />
       <polygon points={polyPoints(CHARLIE)} fill="var(--color-board-c)" />
       <polygon points={polyPoints(ALPHA)} fill="var(--color-board-a)" />
@@ -81,6 +82,10 @@ export function IpscTarget({ shots, interactive = true, onPlace, onRemove, label
       </text>
       <text x="414" y="290" textAnchor="middle" fill="var(--color-board-ink)" fontSize="18" opacity="0.45">
         D
+      </text>
+      <line x1={20} y1={TARGET_H} x2={TARGET_W - 20} y2={TARGET_H} stroke="#8a7b66" strokeDasharray="6 5" strokeWidth="1.5" />
+      <text x={TARGET_W / 2} y={TARGET_H + 36} textAnchor="middle" fill="#6d6254" fontSize="16">
+        Ikke poeng under perforeringen · skive 450 × 570 mm
       </text>
       {shots.map((shot, index) => (
         <g key={shot.id}>
