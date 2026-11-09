@@ -60,4 +60,33 @@
     outline: 2px solid var(--color-brass);
     outline-offset: 2px;
   }
+
+  html {
+    -webkit-tap-highlight-color: transparent;
+    overscroll-behavior-y: none;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: max(16px, 1em);
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .result-card,
+  .result-card * {
+    visibility: visible;
+  }
+
+  .result-card {
+    position: absolute;
+    inset: 0;
+    background: white;
+    color: black;
+  }
 }
