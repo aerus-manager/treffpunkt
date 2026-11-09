@@ -12,19 +12,22 @@ Gjør dette på grokbot sin Supabase-konto:
 ```sql
 create table if not exists public.treffpunkt_diary (
   id text primary key,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
   kind text not null,
   payload jsonb not null,
   updated_at timestamptz not null default now()
 );
+create index if not exists treffpunkt_diary_user_updated
+  on public.treffpunkt_diary (user_id, updated_at);
 alter table public.treffpunkt_diary enable row level security;
 create policy treffpunkt_owner on public.treffpunkt_diary
   for all
-  using (auth.uid() is not null)
-  with check (auth.uid() is not null);
+  using (user_id = auth.uid())
+  with check (user_id = auth.uid());
 ```
+
+Hver bruker ser og endrer bare sine egne rader. Ikke bruk en policy som bare sjekker at noen er innlogget.
 
 3. Svar med prosjekt-URL (https://xxxx.supabase.co) og anon public key.
 
 Ikke send service_role-nøkkelen. Den skal ikke i appen.
-
-Når nøklene er klare, kobles synk på økter, felt og IPSC. Inntil da ligger dagboken på enheten.
