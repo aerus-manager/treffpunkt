@@ -1,21 +1,32 @@
-import { useEffect, useState, type ReactNode } from "react";
-import { BookOpen, House, Plus } from "lucide-react";
+import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { BookOpen, House, Plus, Settings } from "lucide-react";
 import { CategoryView } from "@/components/category-view";
-import { DrillForm } from "@/components/drill-form";
 import { LogView } from "@/components/log-view";
-import { RunDetail } from "@/components/run-detail";
-import { SeriesShoot } from "@/components/series-shoot";
-import { SessionDetail } from "@/components/session-detail";
-import { SetupView } from "@/components/setup-view";
-import { ShootView } from "@/components/shoot-view";
 import { TpHome } from "@/components/tp-home";
-import type { View } from "@/lib/nav";
+import { requestPersistentStorage, setSaveErrorListener } from "@/lib/idb-storage";
+import { useHashView, type GoBack, type Navigate, type View } from "@/lib/nav";
 import { useFaktor } from "@/lib/store";
 import { programById } from "@/lib/treffpunkt/programs";
+import { useWakeLock } from "@/lib/use-wake-lock";
+
+const DrillForm = lazy(() => import("@/components/drill-form").then((module) => ({ default: module.DrillForm })));
+const FeltDetail = lazy(() => import("@/components/felt-detail").then((module) => ({ default: module.FeltDetail })));
+const FeltSetup = lazy(() => import("@/components/felt-setup").then((module) => ({ default: module.FeltSetup })));
+const FeltShoot = lazy(() => import("@/components/felt-shoot").then((module) => ({ default: module.FeltShoot })));
+const RunDetail = lazy(() => import("@/components/run-detail").then((module) => ({ default: module.RunDetail })));
+const SeriesShoot = lazy(() => import("@/components/series-shoot").then((module) => ({ default: module.SeriesShoot })));
+const SessionDetail = lazy(() =>
+  import("@/components/session-detail").then((module) => ({ default: module.SessionDetail })),
+);
+const SettingsView = lazy(() => import("@/components/settings-view").then((module) => ({ default: module.SettingsView })));
+const SetupView = lazy(() => import("@/components/setup-view").then((module) => ({ default: module.SetupView })));
+const ShootView = lazy(() => import("@/components/shoot-view").then((module) => ({ default: module.ShootView })));
+const WeaponsView = lazy(() => import("@/components/weapons-view").then((module) => ({ default: module.WeaponsView })));
 
 export function TreffpunktApp() {
-  const [view, setView] = useState<View>({ name: "home" });
+  const { view, navigate, goBack } = useHashView();
   const [ready, setReady] = useState(false);
+  const [saveError, setSaveError] = useState(false);
 
   useEffect(() => {
     try {
@@ -25,94 +36,63 @@ export function TreffpunktApp() {
     } catch {
       /* private mode */
     }
-    void Promise.resolve(useFaktor.persist.rehydrate()).then(() => setReady(true));
+    setSaveErrorListener(() => setSaveError(true));
+    requestPersistentStorage();
+    void Promise.resolve(useFaktor.persist.rehydrate()).finally(() => setReady(true));
   }, []);
 
-  const focused = view.name === "shoot" || view.name === "form" || view.name === "series" || view.name === "setup";
+  const focused =
+    view.name === "shoot" ||
+    view.name === "form" ||
+    view.name === "series" ||
+    view.name === "setup" ||
+    view.name === "felt" ||
+    view.name === "felt-setup";
+  const shooting = view.name === "shoot" || view.name === "series" || view.name === "felt";
   const showFab = view.name === "category" && view.category === "ipsc";
+  useWakeLock(shooting);
 
   return (
     <div className="min-h-screen bg-bg text-fg">
-      <div className={`mx-auto w-full max-w-lg ${showFab ? "pb-36" : focused ? "pb-8" : "pb-24"}`}>
-        {view.name === "home" ? <TpHome ready={ready} onOpen={setView} /> : null}
-        {view.name === "category" ? (
-          <CategoryView
-            category={view.category}
-            ready={ready}
-            onBack={() => setView({ name: "home" })}
-            onOpen={setView}
-          />
-        ) : null}
-        {view.name === "setup" ? (
-          <SetupView
-            programId={view.programId}
-            onBack={() => {
-              const program = programById(view.programId);
-              setView(program ? { name: "category", category: program.category } : { name: "home" });
-            }}
-            onStart={(sessionId) => setView({ name: "series", sessionId })}
-          />
-        ) : null}
-        {view.name === "series" ? (
-          <SeriesShoot
-            sessionId={view.sessionId}
-            onClose={() => setView({ name: "home" })}
-            onFinished={(sessionId) => setView({ name: "session", sessionId })}
-          />
-        ) : null}
-        {view.name === "session" ? (
-          <SessionDetail
-            sessionId={view.sessionId}
-            onBack={() => setView({ name: "log" })}
-            onContinue={() => setView({ name: "series", sessionId: view.sessionId })}
-            onDeleted={() => setView({ name: "log" })}
-          />
-        ) : null}
-        {view.name === "log" ? <LogView ready={ready} onOpen={setView} /> : null}
-        {view.name === "form" ? (
-          <DrillForm
-            drillId={view.drillId}
-            onDone={() => setView({ name: "category", category: "ipsc" })}
-          />
-        ) : null}
-        {view.name === "shoot" ? (
-          <ShootView
-            drillId={view.drillId}
-            runId={view.runId}
-            onClose={() =>
-              setView(view.runId ? { name: "run", runId: view.runId } : { name: "category", category: "ipsc" })
-            }
-            onSaved={(runId) => setView({ name: "run", runId })}
-          />
-        ) : null}
-        {view.name === "run" ? (
-          <RunDetail
-            runId={view.runId}
-            onBack={() => setView({ name: "log" })}
-            onEdit={() => {
-              const run = useFaktor.getState().runs.find((item) => item.id === view.runId);
-              if (!run) return;
-              setView({ name: "shoot", drillId: run.drillId, runId: run.id });
-            }}
-            onDeleted={() => setView({ name: "log" })}
-            onAgain={(drillId) => setView({ name: "shoot", drillId })}
-          />
-        ) : null}
+      {saveError ? (
+        <div role="alert" className="sticky top-0 z-30 bg-miss px-4 py-2 text-sm font-medium text-bg">
+          Kunne ikke lagre. Lagringsplassen kan være full. Ta en sikkerhetskopi under «Mer».
+        </div>
+      ) : null}
+      <div
+        className={`mx-auto w-full max-w-lg ${showFab ? "pb-36" : focused ? "pb-8" : "pb-24"}`}
+        style={{ paddingTop: "env(safe-area-inset-top)" }}
+      >
+        <Suspense fallback={<p className="px-4 pt-6 text-sm text-muted">Laster…</p>}>
+          {ready ? <Screen view={view} navigate={navigate} goBack={goBack} /> : <Loading />}
+        </Suspense>
       </div>
       {focused ? null : (
-        <nav className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface">
-          <div className="mx-auto grid max-w-lg grid-cols-2">
+        <nav
+          className="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-surface"
+          style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
+          aria-label="Hovedmeny"
+        >
+          <div className="mx-auto grid max-w-lg grid-cols-3">
             <NavButton
-              active={view.name === "home" || view.name === "category"}
+              active={view.name === "home" || view.name === "category" || view.name === "weapons"}
               label="Hjem"
               icon={<House className="size-5" aria-hidden="true" />}
-              onClick={() => setView({ name: "home" })}
+              onClick={() => navigate({ name: "home" })}
             />
             <NavButton
-              active={view.name === "log" || view.name === "run" || view.name === "session"}
+              active={
+                view.name === "log" || view.name === "run" || view.name === "session" || view.name === "felt-detail"
+              }
               label="Mine økter"
               icon={<BookOpen className="size-5" aria-hidden="true" />}
-              onClick={() => setView({ name: "log" })}
+              onClick={() => navigate({ name: "log" })}
+            />
+            <NavButton
+              active={view.name === "settings"}
+              label="Mer"
+              icon={<Settings className="size-5" aria-hidden="true" />}
+              onClick={() => navigate({ name: "settings" })}
             />
           </div>
         </nav>
@@ -120,8 +100,8 @@ export function TreffpunktApp() {
       {showFab ? (
         <button
           type="button"
-          className="fixed right-4 bottom-20 z-20 flex size-14 items-center justify-center rounded-full bg-brass text-brass-ink"
-          onClick={() => setView({ name: "form" })}
+          className="fixed right-4 bottom-24 z-20 flex size-14 items-center justify-center rounded-full bg-brass text-brass-ink shadow-lg"
+          onClick={() => navigate({ name: "form" })}
           aria-label="Ny drill"
         >
           <Plus className="size-6" aria-hidden="true" />
@@ -129,6 +109,112 @@ export function TreffpunktApp() {
       ) : null}
     </div>
   );
+}
+
+function Loading() {
+  return (
+    <div className="px-4 pt-6" aria-busy="true">
+      <p className="text-xs font-medium tracking-wide text-brass uppercase">Skytedagbok</p>
+      <p className="mt-1 font-score text-5xl leading-none">Treffpunkt</p>
+      <p className="mt-6 text-sm text-muted">Henter dagboken…</p>
+    </div>
+  );
+}
+
+function Screen({ view, navigate, goBack }: { view: View; navigate: Navigate; goBack: GoBack }) {
+  switch (view.name) {
+    case "home":
+      return <TpHome ready onOpen={navigate} />;
+    case "category":
+      return (
+        <CategoryView category={view.category} ready onBack={() => goBack({ name: "home" })} onOpen={navigate} />
+      );
+    case "setup": {
+      const program = programById(view.programId);
+      return (
+        <SetupView
+          programId={view.programId}
+          onBack={() => goBack(program ? { name: "category", category: program.category } : { name: "home" })}
+          onStart={(sessionId) => navigate({ name: "series", sessionId }, { replace: true })}
+        />
+      );
+    }
+    case "series":
+      return (
+        <SeriesShoot
+          sessionId={view.sessionId}
+          onClose={() => goBack({ name: "home" })}
+          onFinished={(sessionId) => navigate({ name: "session", sessionId }, { replace: true })}
+        />
+      );
+    case "session":
+      return (
+        <SessionDetail
+          sessionId={view.sessionId}
+          onBack={() => goBack({ name: "log" })}
+          onContinue={() => navigate({ name: "series", sessionId: view.sessionId })}
+          onDeleted={() => navigate({ name: "log" }, { replace: true })}
+          onRestart={(sessionId) => navigate({ name: "series", sessionId })}
+        />
+      );
+    case "felt-setup":
+      return (
+        <FeltSetup
+          courseId={view.courseId}
+          onBack={() => goBack({ name: "category", category: "felt" })}
+          onStart={(sessionId) => navigate({ name: "felt", sessionId }, { replace: true })}
+        />
+      );
+    case "felt":
+      return (
+        <FeltShoot
+          sessionId={view.sessionId}
+          onClose={() => goBack({ name: "home" })}
+          onFinished={(sessionId) => navigate({ name: "felt-detail", sessionId }, { replace: true })}
+        />
+      );
+    case "felt-detail":
+      return (
+        <FeltDetail
+          sessionId={view.sessionId}
+          onBack={() => goBack({ name: "log" })}
+          onContinue={() => navigate({ name: "felt", sessionId: view.sessionId })}
+          onDeleted={() => navigate({ name: "log" }, { replace: true })}
+        />
+      );
+    case "weapons":
+      return <WeaponsView onBack={() => goBack({ name: "home" })} />;
+    case "log":
+      return <LogView onOpen={navigate} />;
+    case "settings":
+      return <SettingsView />;
+    case "form":
+      return <DrillForm drillId={view.drillId} onDone={() => goBack({ name: "category", category: "ipsc" })} />;
+    case "shoot":
+      return (
+        <ShootView
+          drillId={view.drillId}
+          runId={view.runId}
+          onClose={() =>
+            goBack(view.runId ? { name: "run", runId: view.runId } : { name: "category", category: "ipsc" })
+          }
+          onSaved={(runId) => navigate({ name: "run", runId }, { replace: true })}
+        />
+      );
+    case "run":
+      return (
+        <RunDetail
+          runId={view.runId}
+          onBack={() => goBack({ name: "log" })}
+          onEdit={() => {
+            const run = useFaktor.getState().runs.find((item) => item.id === view.runId);
+            if (run) navigate({ name: "shoot", drillId: run.drillId, runId: run.id });
+          }}
+          onDeleted={() => navigate({ name: "log" }, { replace: true })}
+          onAgain={(drillId) => navigate({ name: "shoot", drillId })}
+        />
+      );
+  }
 }
 
 function NavButton({
@@ -146,9 +232,8 @@ function NavButton({
     <button
       type="button"
       onClick={onClick}
-      className={`flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium ${
-        active ? "text-brass" : "text-muted"
-      }`}
+      aria-current={active ? "page" : undefined}
+      className={`flex h-16 flex-col items-center justify-center gap-1 text-xs font-medium ${active ? "text-brass" : "text-muted"}`}
     >
       {icon}
       {label}
