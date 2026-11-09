@@ -1,0 +1,63 @@
+@import "tailwindcss";
+
+@theme {
+  --color-bg: #14120f;
+  --color-surface: #1e1b17;
+  --color-surface-2: #2a261f;
+  --color-fg: #f4efe6;
+  --color-muted: #b7ad9e;
+  --color-line: #3a342c;
+  --color-brass: #e0a24a;
+  --color-brass-ink: #2a1c08;
+  --color-miss: #e07a68;
+  --color-board-d: #c6ae86;
+  --color-board-c: #ddc8a4;
+  --color-board-a: #f0e2c6;
+  --color-board-ink: #2c261e;
+  --color-hole: #1a1612;
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-score: "Newsreader", ui-serif, Georgia, serif;
+  --radius-card: 1rem;
+}
+
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background: var(--color-bg);
+    color: var(--color-fg);
+  }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    background: var(--color-bg);
+    color: var(--color-fg);
+    font-family: var(--font-sans);
+    line-height: 1.5;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  button:disabled {
+    cursor: not-allowed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+
+  p {
+    text-wrap: pretty;
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--color-brass);
+    outline-offset: 2px;
+  }
+}
