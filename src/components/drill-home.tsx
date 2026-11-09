@@ -4,11 +4,11 @@ import { START_LABEL, allDrills } from "@/lib/ipsc/drills";
 import { formatHf } from "@/lib/ipsc/format";
 import { scoreRun } from "@/lib/ipsc/scoring";
 import type { Drill, Power, Run } from "@/lib/ipsc/types";
-import { useFaktor } from "@/lib/store";
+import { useCustomDrills, useRuns } from "@/lib/store";
 
 export function DrillHome({ ready, onOpen }: { ready: boolean; onOpen: (view: View) => void }) {
-  const custom = useFaktor((state) => state.customDrills);
-  const runs = useFaktor((state) => state.runs);
+  const custom = useCustomDrills();
+  const runs = useRuns();
   const drills = allDrills(custom);
 
   return (

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ArrowLeft } from "lucide-react";
+import { WeaponField } from "@/components/weapon-field";
 import { programById, totalShots } from "@/lib/treffpunkt/programs";
 import { createSession } from "@/lib/treffpunkt/session";
 import { useFaktor } from "@/lib/store";
@@ -16,6 +17,7 @@ export function SetupView({
   const program = programById(programId);
   const save = useFaktor((state) => state.saveRingSession);
   const [place, setPlace] = useState("");
+  const [weaponId, setWeaponId] = useState<string | null>(null);
 
   if (!program) {
     return (
@@ -59,11 +61,12 @@ export function SetupView({
         placeholder="Valgfritt, f.eks. Løvenskiold"
         className="mt-2 h-11 w-full rounded-card border border-line bg-surface px-3 text-fg"
       />
+      <WeaponField value={weaponId} onChange={setWeaponId} />
       <button
         type="button"
         className="mt-4 inline-flex h-11 w-full items-center justify-center rounded-full bg-brass font-semibold text-brass-ink"
         onClick={() => {
-          const session = createSession(program, place);
+          const session = createSession(program, place, weaponId);
           save(session);
           onStart(session.id);
         }}
