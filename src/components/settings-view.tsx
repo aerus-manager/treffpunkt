@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Check, Download, Pencil, Trash2, Upload, UserPlus } from "lucide-react";
+import { Check, Download, Pencil, Share2, Trash2, Upload, UserPlus } from "lucide-react";
+import { canShareBackup, downloadBackup, shareBackup } from "@/lib/backup-file";
+import { dayLabel } from "@/lib/ipsc/format";
 import { exportBackup, parseBackup, useFaktor, type Profile } from "@/lib/store";
 
 export function SettingsView() {
@@ -29,17 +31,25 @@ export function SettingsView() {
       .catch(() => undefined);
   }, [runs, sessions]);
 
+  const lastBackupAt = useFaktor((state) => state.lastBackupAt);
+  const markBackedUp = useFaktor((state) => state.markBackedUp);
+  const [shareable] = useState(canShareBackup);
+
   const download = () => {
-    const blob = new Blob([exportBackup()], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `treffpunkt-${new Date().toISOString().slice(0, 10)}.json`;
-    document.body.appendChild(link);
-    link.click();
-    link.remove();
-    window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    downloadBackup();
+    markBackedUp();
     setMessage({ tone: "ok", text: "Sikkerhetskopien er lastet ned." });
+  };
+
+  const share = async () => {
+    try {
+      if ((await shareBackup()) === "shared") {
+        markBackedUp();
+        setMessage({ tone: "ok", text: "Sikkerhetskopien er delt." });
+      }
+    } catch {
+      setMessage({ tone: "error", text: "Deling virket ikke. Prøv «Last ned»." });
+    }
   };
 
   const restore = async (file: File) => {
@@ -116,7 +126,17 @@ export function SettingsView() {
           Dagboken ligger bare på denne enheten. Last ned en kopi jevnlig, og bruk den for å flytte
           dagboken til en annen telefon. Innlesing slår sammen – ingenting slettes.
         </p>
-        <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className={`mt-3 grid gap-2 ${shareable ? "grid-cols-3" : "grid-cols-2"}`}>
+          {shareable ? (
+            <button
+              type="button"
+              onClick={() => void share()}
+              className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brass text-sm font-semibold text-brass-ink"
+            >
+              <Share2 className="size-4" aria-hidden="true" />
+              Del
+            </button>
+          ) : null}
           <button
             type="button"
             onClick={download}
@@ -157,6 +177,11 @@ export function SettingsView() {
           {sessions.length} programøkter og {runs.length} IPSC-runder totalt
           {usage ? ` · ${usage}` : ""}
           {persisted === true ? " · beskyttet mot automatisk sletting" : ""}
+        </p>
+        <p className="mt-1 text-sm text-muted">
+          {lastBackupAt
+            ? `Sist sikkerhetskopiert: ${dayLabel(lastBackupAt).toLowerCase()}`
+            : "Ingen sikkerhetskopi tatt ennå."}
         </p>
         {persisted === false ? (
           <p className="mt-2 text-sm text-muted">

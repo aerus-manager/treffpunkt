@@ -94,8 +94,31 @@ function currentView(): View {
 export type Navigate = (view: View, options?: { replace?: boolean }) => void;
 export type GoBack = (parent: View) => void;
 
-/** Hashes of the history entries this tab has created, indexed by history.state.idx. */
-const trail: string[] = [];
+/**
+ * Hashes of the history entries this tab has created, indexed by history.state.idx.
+ * Kept in sessionStorage so in-app "back" still pops history after a reload.
+ */
+const TRAIL_KEY = "treffpunkt-trail";
+const trail: string[] = readTrail();
+
+function readTrail(): string[] {
+  try {
+    const parsed: unknown = JSON.parse(sessionStorage.getItem(TRAIL_KEY) ?? "[]");
+    return Array.isArray(parsed)
+      ? parsed.filter((item): item is string => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveTrail() {
+  try {
+    sessionStorage.setItem(TRAIL_KEY, JSON.stringify(trail));
+  } catch {
+    /* storage blocked */
+  }
+}
 
 function stateIndex(): number {
   const idx = (history.state as { idx?: number } | null)?.idx;
@@ -110,6 +133,7 @@ export function useHashView(): { view: View; navigate: Navigate; goBack: GoBack 
       history.replaceState({ idx: 0 }, "", window.location.hash || "#/");
     }
     trail[stateIndex()] = window.location.hash || "#/";
+    saveTrail();
     const sync = () => setView(currentView());
     window.addEventListener("popstate", sync);
     window.addEventListener("hashchange", sync);
@@ -130,6 +154,7 @@ export function useHashView(): { view: View; navigate: Navigate; goBack: GoBack 
       trail.length = idx + 1;
       trail[idx + 1] = hash;
     }
+    saveTrail();
     setView(next);
     window.scrollTo({ top: 0 });
   }, []);

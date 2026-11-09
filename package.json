@@ -9,7 +9,7 @@
     "build": "tsc --noEmit && vite build",
     "preview": "vite preview --port 8081",
     "typecheck": "tsc --noEmit",
-    "test": "node --experimental-strip-types --no-warnings --test src/lib/nav.test.ts src/lib/ipsc/scoring.test.ts src/lib/treffpunkt/scoring.test.ts",
+    "test": "node --experimental-strip-types --no-warnings --test src/lib/backup.test.ts src/lib/nav.test.ts src/lib/ipsc/scoring.test.ts src/lib/treffpunkt/scoring.test.ts",
     "lint": "eslint .",
     "format": "prettier --write ."
   },

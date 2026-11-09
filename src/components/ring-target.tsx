@@ -14,6 +14,7 @@ export const RingTarget = memo(function RingTarget({
   readOnly,
   zoom = false,
   highlightLast = false,
+  compact = false,
   onPlace,
 }: {
   face: Face;
@@ -21,6 +22,8 @@ export const RingTarget = memo(function RingTarget({
   readOnly?: boolean;
   zoom?: boolean;
   highlightLast?: boolean;
+  /** Thumbnail: no ring numbers, bigger holes so they stay visible. */
+  compact?: boolean;
   onPlace?: (xMm: number, yMm: number) => void;
 }) {
   const [pending, setPending] = useState<Point | null>(null);
@@ -33,7 +36,7 @@ export const RingTarget = memo(function RingTarget({
     : outer / 2 + face.caliberMm;
   const span = half * 2;
   const stroke = Math.max(half / 160, 0.3);
-  const hole = Math.max(face.caliberMm / 2, half / 60);
+  const hole = Math.max(face.caliberMm / 2, half / (compact ? 18 : 60));
 
   const rings = useMemo(() => {
     const list: { ring: number; radius: number; inner: number; onBlack: boolean }[] = [];
@@ -62,7 +65,8 @@ export const RingTarget = memo(function RingTarget({
   const interactive = !readOnly && !!onPlace;
 
   const down = (event: PointerEvent<SVGSVGElement>) => {
-    if (!interactive || pointerId.current != null) return;
+    // Primary button / touch / pen only: a right-click must not place a shot.
+    if (!interactive || pointerId.current != null || event.button !== 0) return;
     const local = toLocal(event);
     if (!local) return;
     pointerId.current = event.pointerId;
@@ -131,7 +135,9 @@ export const RingTarget = memo(function RingTarget({
           />
         ) : null}
         {rings
-          .filter((ring) => ring.inner > 0 && fontSize(ring.radius, ring.inner) > half / 40)
+          .filter(
+            (ring) => !compact && ring.inner > 0 && fontSize(ring.radius, ring.inner) > half / 40,
+          )
           .map((ring) => {
             const x = (ring.radius + ring.inner) / 2;
             const size = fontSize(ring.radius, ring.inner);

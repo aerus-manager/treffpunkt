@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
-import { TriangleAlert } from "lucide-react";
+import { Download, TriangleAlert } from "lucide-react";
+import { downloadBackup } from "@/lib/backup-file";
 
 type State = { error: Error | null };
 
@@ -27,16 +28,32 @@ export class ErrorBoundary extends Component<{ children: ReactNode }, State> {
         <p className="max-w-md text-sm text-muted">
           Dagboken din er lagret på enheten og er ikke borte.
         </p>
-        <button
-          type="button"
-          className="mt-2 h-11 rounded-full bg-brass px-5 font-semibold text-brass-ink"
-          onClick={() => {
-            window.location.hash = "";
-            window.location.reload();
-          }}
-        >
-          Last inn på nytt
-        </button>
+        <div className="mt-2 flex flex-wrap justify-center gap-2">
+          <button
+            type="button"
+            className="h-11 rounded-full bg-brass px-5 font-semibold text-brass-ink"
+            onClick={() => {
+              window.location.hash = "";
+              window.location.reload();
+            }}
+          >
+            Last inn på nytt
+          </button>
+          <button
+            type="button"
+            className="inline-flex h-11 items-center gap-2 rounded-full border border-line px-5 text-sm"
+            onClick={() => {
+              try {
+                downloadBackup();
+              } catch {
+                /* nothing more we can do here */
+              }
+            }}
+          >
+            <Download className="size-4" aria-hidden="true" />
+            Last ned sikkerhetskopi
+          </button>
+        </div>
       </main>
     );
   }

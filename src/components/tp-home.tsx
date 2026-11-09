@@ -1,9 +1,13 @@
-import { ChevronRight } from "lucide-react";
+import { useState } from "react";
+import { ChevronRight, ShieldAlert } from "lucide-react";
 import { ProfileChip } from "@/components/profile-chip";
 import type { View } from "@/lib/nav";
 import { CATEGORIES, programById } from "@/lib/treffpunkt/programs";
 import { sessionPoints, type RingSession } from "@/lib/treffpunkt/session";
-import { useRingSessions, useRuns } from "@/lib/store";
+import { useFaktor, useRingSessions, useRuns } from "@/lib/store";
+
+const BACKUP_NAG_DAYS = 30;
+const BACKUP_NAG_MIN_ENTRIES = 5;
 
 export function TpHome({ onOpen }: { onOpen: (view: View) => void }) {
   const sessions = useRingSessions();
@@ -13,6 +17,12 @@ export function TpHome({ onOpen }: { onOpen: (view: View) => void }) {
     .sort((a, b) => b.touched.localeCompare(a.touched));
   const resume = open[0];
   const empty = sessions.length === 0 && runs.length === 0;
+  const lastBackupAt = useFaktor((state) => state.lastBackupAt);
+  const entries = useFaktor((state) => state.runs.length + state.ringSessions.length);
+  const [now] = useState(() => Date.now());
+  const backupDue =
+    entries >= BACKUP_NAG_MIN_ENTRIES &&
+    (!lastBackupAt || now - Date.parse(lastBackupAt) > BACKUP_NAG_DAYS * 86_400_000);
 
   return (
     <main className="px-4 pt-6">
@@ -43,6 +53,21 @@ export function TpHome({ onOpen }: { onOpen: (view: View) => void }) {
             <span className="mt-1 block text-sm text-muted">{resumeLine(resume)}</span>
           </span>
           <ChevronRight className="size-5 shrink-0 text-brass" aria-hidden="true" />
+        </button>
+      ) : null}
+      {backupDue ? (
+        <button
+          type="button"
+          onClick={() => onOpen({ name: "settings" })}
+          className="mt-4 flex w-full items-center gap-3 rounded-card border border-line bg-surface-2 p-3 text-left text-sm"
+        >
+          <ShieldAlert className="size-5 shrink-0 text-brass" aria-hidden="true" />
+          <span>
+            {lastBackupAt
+              ? "Det er over en måned siden siste sikkerhetskopi."
+              : "Du har ikke tatt sikkerhetskopi av dagboken ennå."}{" "}
+            <span className="text-brass">Ta en nå</span>
+          </span>
         </button>
       ) : null}
       <ul className="mt-6 flex flex-col gap-3">

@@ -1,25 +1,24 @@
 import { useMemo } from "react";
 import { create } from "zustand";
-import { createJSONStorage, persist } from "zustand/middleware";
-import { idbStorage } from "@/lib/idb-storage";
+import { persist } from "zustand/middleware";
+import { createBatchedStorage } from "@/lib/idb-storage";
 import type { Drill, Power, Run } from "@/lib/ipsc/types";
 import type { RingSession } from "@/lib/treffpunkt/session";
 
-export type Profile = { id: string; name: string };
+import { mergeById, serializeBackup, type DiaryData, type Profile } from "@/lib/backup";
+
+export type { DiaryData, Profile };
+export { parseBackup } from "@/lib/backup";
 
 export const DEFAULT_PROFILE_ID = "default";
 const DEFAULT_PROFILE: Profile = { id: DEFAULT_PROFILE_ID, name: "Meg" };
 
-export type DiaryData = {
-  profiles: Profile[];
-  customDrills: Drill[];
-  runs: Run[];
-  ringSessions: RingSession[];
-};
-
 type DagbokState = DiaryData & {
   activeProfileId: string;
   lastPower: Power;
+  /** When the shooter last downloaded or shared a backup. */
+  lastBackupAt: string | null;
+  markBackedUp: () => void;
   saveDrill: (drill: Drill) => void;
   deleteDrill: (id: string) => void;
   saveRun: (run: Run) => void;
@@ -32,7 +31,11 @@ type DagbokState = DiaryData & {
   deleteProfile: (id: string) => void;
   setActiveProfile: (id: string) => void;
   importBackup: (data: DiaryData) => { added: number };
+  pruneEmptySessions: () => void;
 };
+
+/** Sessions started but never shot in, left behind when someone backs out of the setup. */
+const EMPTY_SESSION_GRACE_MS = 30 * 60 * 1000;
 
 function upsert<T extends { id: string }>(list: T[], item: T, prepend = true): T[] {
   const index = list.findIndex((entry) => entry.id === item.id);
@@ -40,19 +43,6 @@ function upsert<T extends { id: string }>(list: T[], item: T, prepend = true): T
   const next = list.slice();
   next[index] = item;
   return next;
-}
-
-function mergeById<T extends { id: string }>(
-  current: T[],
-  incoming: T[],
-): { list: T[]; added: number } {
-  const byId = new Map(current.map((item) => [item.id, item]));
-  let added = 0;
-  for (const item of incoming) {
-    if (!byId.has(item.id)) added += 1;
-    byId.set(item.id, item);
-  }
-  return { list: [...byId.values()], added };
 }
 
 const owner = <T extends { profileId?: string }>(item: T) => item.profileId ?? DEFAULT_PROFILE_ID;
@@ -63,6 +53,8 @@ export const useFaktor = create<DagbokState>()(
       profiles: [DEFAULT_PROFILE],
       activeProfileId: DEFAULT_PROFILE_ID,
       lastPower: "minor",
+      lastBackupAt: null,
+      markBackedUp: () => set({ lastBackupAt: new Date().toISOString() }),
       customDrills: [],
       runs: [],
       ringSessions: [],
@@ -122,6 +114,18 @@ export const useFaktor = create<DagbokState>()(
       setActiveProfile: (id) => {
         if (get().profiles.some((profile) => profile.id === id)) set({ activeProfileId: id });
       },
+      pruneEmptySessions: () => {
+        const cutoff = new Date(Date.now() - EMPTY_SESSION_GRACE_MS).toISOString();
+        const sessions = get().ringSessions;
+        const kept = sessions.filter(
+          (session) =>
+            session.status !== "open" ||
+            session.sealed.length > 0 ||
+            session.current.length > 0 ||
+            session.touched > cutoff,
+        );
+        if (kept.length !== sessions.length) set({ ringSessions: kept });
+      },
       importBackup: (data) => {
         const state = get();
         const profiles = mergeById(state.profiles, data.profiles ?? []);
@@ -146,12 +150,13 @@ export const useFaktor = create<DagbokState>()(
     {
       name: "treffpunkt-dagbok",
       version: 2,
-      storage: createJSONStorage(() => idbStorage),
+      storage: createBatchedStorage(),
       skipHydration: true,
       partialize: (state) => ({
         profiles: state.profiles,
         activeProfileId: state.activeProfileId,
         lastPower: state.lastPower,
+        lastBackupAt: state.lastBackupAt,
         customDrills: state.customDrills,
         runs: state.runs,
         ringSessions: state.ringSessions,
@@ -188,39 +193,7 @@ export function useActiveProfile(): Profile {
   return profiles.find((profile) => profile.id === active) ?? profiles[0] ?? DEFAULT_PROFILE;
 }
 
-export const BACKUP_APP = "treffpunkt";
-
 export function exportBackup(): string {
   const { profiles, customDrills, runs, ringSessions } = useFaktor.getState();
-  return JSON.stringify(
-    {
-      app: BACKUP_APP,
-      version: 2,
-      exportedAt: new Date().toISOString(),
-      profiles,
-      customDrills,
-      runs,
-      ringSessions,
-    },
-    null,
-    0,
-  );
-}
-
-export function parseBackup(text: string): DiaryData {
-  const data = JSON.parse(text) as Partial<DiaryData> & { app?: string };
-  if (data.app !== BACKUP_APP && !Array.isArray(data.runs) && !Array.isArray(data.ringSessions)) {
-    throw new Error("Filen er ikke en Treffpunkt-sikkerhetskopi.");
-  }
-  const arr = <T>(value: unknown): T[] => (Array.isArray(value) ? (value as T[]) : []);
-  return {
-    profiles: arr<Profile>(data.profiles).filter((p) => p && typeof p.id === "string"),
-    customDrills: arr<Drill>(data.customDrills).filter((d) => d && typeof d.id === "string"),
-    runs: arr<Run>(data.runs).filter(
-      (r) => r && typeof r.id === "string" && Array.isArray(r.shots),
-    ),
-    ringSessions: arr<RingSession>(data.ringSessions).filter(
-      (s) => s && typeof s.id === "string" && Array.isArray(s.sealed),
-    ),
-  };
+  return serializeBackup({ profiles, customDrills, runs, ringSessions });
 }

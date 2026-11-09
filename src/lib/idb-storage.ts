@@ -1,4 +1,4 @@
-import type { StateStorage } from "zustand/middleware";
+import type { PersistStorage, StateStorage, StorageValue } from "zustand/middleware";
 
 /**
  * Async key/value storage on IndexedDB, used by the zustand persist middleware.
@@ -107,4 +107,80 @@ export function requestPersistentStorage() {
   } catch {
     /* unsupported */
   }
+}
+
+/* ------------------------------------------------------------------------ */
+/* Batched persistence for the zustand store                                 */
+/* ------------------------------------------------------------------------ */
+
+const WRITE_DELAY_MS = 300;
+const CHANNEL = "treffpunkt-sync";
+const tabId = Math.random().toString(36).slice(2);
+
+const pending = new Map<string, StorageValue<unknown>>();
+let timer: ReturnType<typeof setTimeout> | null = null;
+let channel: BroadcastChannel | null = null;
+
+function getChannel(): BroadcastChannel | null {
+  if (!channel && typeof BroadcastChannel !== "undefined") channel = new BroadcastChannel(CHANNEL);
+  return channel;
+}
+
+/** Write everything queued now. Called on a timer and whenever the page is hidden. */
+export async function flushPendingWrites(): Promise<void> {
+  if (timer) {
+    clearTimeout(timer);
+    timer = null;
+  }
+  const entries = [...pending];
+  pending.clear();
+  for (const [name, value] of entries) {
+    await idbStorage.setItem(name, JSON.stringify(value));
+    getChannel()?.postMessage({ name, from: tabId });
+  }
+}
+
+if (typeof window !== "undefined") {
+  // Last chance before the OS freezes or kills the tab.
+  window.addEventListener("pagehide", () => void flushPendingWrites());
+  document.addEventListener("visibilitychange", () => {
+    if (document.visibilityState === "hidden") void flushPendingWrites();
+  });
+}
+
+/** Another tab saved: lets this tab reload instead of overwriting newer data later. */
+export function onExternalChange(listener: (name: string) => void): () => void {
+  const ch = getChannel();
+  if (!ch) return () => undefined;
+  const handle = (event: MessageEvent<{ name: string; from: string }>) => {
+    if (event.data?.from !== tabId && !pending.has(event.data.name)) listener(event.data.name);
+  };
+  ch.addEventListener("message", handle);
+  return () => ch.removeEventListener("message", handle);
+}
+
+/**
+ * zustand PersistStorage that coalesces rapid changes (one per shot) into a
+ * single serialize-and-write, instead of stringifying the whole diary each tap.
+ */
+export function createBatchedStorage<S>(): PersistStorage<S> {
+  return {
+    async getItem(name) {
+      const raw = await idbStorage.getItem(name);
+      if (!raw) return null;
+      try {
+        return JSON.parse(raw) as StorageValue<S>;
+      } catch {
+        return null;
+      }
+    },
+    setItem(name, value) {
+      pending.set(name, value as StorageValue<unknown>);
+      if (!timer) timer = setTimeout(() => void flushPendingWrites(), WRITE_DELAY_MS);
+    },
+    async removeItem(name) {
+      pending.delete(name);
+      await idbStorage.removeItem(name);
+    },
+  };
 }

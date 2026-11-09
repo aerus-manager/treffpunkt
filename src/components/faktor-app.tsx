@@ -1,35 +1,32 @@
-import { lazy, Suspense, useEffect, useState, type ReactNode } from "react";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { BookOpen, House, Plus, Settings } from "lucide-react";
 import { CategoryView } from "@/components/category-view";
 import { LogView } from "@/components/log-view";
 import { TpHome } from "@/components/tp-home";
-import { setSaveErrorListener, requestPersistentStorage } from "@/lib/idb-storage";
+import {
+  onExternalChange,
+  requestPersistentStorage,
+  setSaveErrorListener,
+} from "@/lib/idb-storage";
+import { lazyScreen } from "@/lib/lazy-screen";
 import { useHashView, type GoBack, type Navigate, type View } from "@/lib/nav";
 import { useFaktor } from "@/lib/store";
 import { programById } from "@/lib/treffpunkt/programs";
 import { useWakeLock } from "@/lib/use-wake-lock";
 
 // Shooting and detail screens load on demand so the home screen paints fast.
-const DrillForm = lazy(() =>
-  import("@/components/drill-form").then((m) => ({ default: m.DrillForm })),
+const DrillForm = lazyScreen(() => import("@/components/drill-form").then((m) => m.DrillForm));
+const RunDetail = lazyScreen(() => import("@/components/run-detail").then((m) => m.RunDetail));
+const SeriesShoot = lazyScreen(() =>
+  import("@/components/series-shoot").then((m) => m.SeriesShoot),
 );
-const RunDetail = lazy(() =>
-  import("@/components/run-detail").then((m) => ({ default: m.RunDetail })),
+const SessionDetail = lazyScreen(() =>
+  import("@/components/session-detail").then((m) => m.SessionDetail),
 );
-const SeriesShoot = lazy(() =>
-  import("@/components/series-shoot").then((m) => ({ default: m.SeriesShoot })),
-);
-const SessionDetail = lazy(() =>
-  import("@/components/session-detail").then((m) => ({ default: m.SessionDetail })),
-);
-const SetupView = lazy(() =>
-  import("@/components/setup-view").then((m) => ({ default: m.SetupView })),
-);
-const ShootView = lazy(() =>
-  import("@/components/shoot-view").then((m) => ({ default: m.ShootView })),
-);
-const SettingsView = lazy(() =>
-  import("@/components/settings-view").then((m) => ({ default: m.SettingsView })),
+const SetupView = lazyScreen(() => import("@/components/setup-view").then((m) => m.SetupView));
+const ShootView = lazyScreen(() => import("@/components/shoot-view").then((m) => m.ShootView));
+const SettingsView = lazyScreen(() =>
+  import("@/components/settings-view").then((m) => m.SettingsView),
 );
 
 export function TreffpunktApp() {
@@ -40,7 +37,12 @@ export function TreffpunktApp() {
   useEffect(() => {
     setSaveErrorListener(() => setSaveError(true));
     requestPersistentStorage();
-    void Promise.resolve(useFaktor.persist.rehydrate()).finally(() => setReady(true));
+    void Promise.resolve(useFaktor.persist.rehydrate()).finally(() => {
+      useFaktor.getState().pruneEmptySessions();
+      setReady(true);
+    });
+    // Another tab saved: reload from storage so neither tab overwrites the other.
+    return onExternalChange(() => void useFaktor.persist.rehydrate());
   }, []);
 
   const focused =

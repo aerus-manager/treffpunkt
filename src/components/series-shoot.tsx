@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { ArrowLeft, Keyboard, Undo2, ZoomIn, ZoomOut } from "lucide-react";
 import { RingTarget } from "@/components/ring-target";
 import { SeriesTimer } from "@/components/series-timer";
@@ -30,7 +30,8 @@ export function SeriesShoot({
 
   const program = session ? programById(session.programId) : undefined;
   const stage = session && program ? program.stages[session.stageIndex] : undefined;
-  const face = stage ? faceFor(stage) : null;
+  // Stage objects come from the static catalogue, so this keeps the target memoized.
+  const face = useMemo(() => (stage ? faceFor(stage) : null), [stage]);
   const full = !!stage && !!session && session.current.length >= stage.shotsPerSeries;
 
   const addShot = useCallback(
@@ -142,9 +143,32 @@ export function SeriesShoot({
       {face && !pad ? (
         <div className="mt-3">
           {targets > 1 ? (
-            <p className="mb-2 text-sm text-muted">
-              Skive {targetIndex + 1} av {targets}
-            </p>
+            <div className="mb-2">
+              <p className="text-sm text-muted">
+                {full
+                  ? "Alle skivene er skutt"
+                  : `Neste skudd: skive ${targetIndex + 1} av ${targets}`}
+              </p>
+              <div
+                className="mt-2 grid gap-1.5"
+                style={{ gridTemplateColumns: `repeat(${targets}, minmax(0, 1fr))` }}
+              >
+                {Array.from({ length: targets }, (_, index) => (
+                  <div
+                    key={index}
+                    className={`rounded-lg p-0.5 ${index === targetIndex && !full ? "bg-brass" : "bg-transparent"}`}
+                    aria-label={`Skive ${index + 1}`}
+                  >
+                    <RingTarget
+                      face={face}
+                      shots={session.current.filter((shot) => shot.targetIndex === index)}
+                      readOnly
+                      compact
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
           ) : null}
           <RingTarget
             face={face}
