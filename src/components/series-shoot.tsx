@@ -1,5 +1,5 @@
-import { useCallback, useMemo, useState } from "react";
-import { ArrowLeft, Keyboard, Undo2, ZoomIn, ZoomOut } from "lucide-react";
+import { Suspense, useCallback, useMemo, useState } from "react";
+import { ArrowLeft, Camera, Keyboard, Undo2, ZoomIn, ZoomOut } from "lucide-react";
 import { RingTarget } from "@/components/ring-target";
 import { SeriesTimer } from "@/components/series-timer";
 import { highestRing, scoreShot, type Face } from "@/lib/treffpunkt/faces";
@@ -13,6 +13,10 @@ import {
   type RingShot,
 } from "@/lib/treffpunkt/session";
 import { useFaktor } from "@/lib/store";
+import { lazyScreen } from "@/lib/lazy-screen";
+
+// The image analysis is only loaded when someone actually photographs a target.
+const PhotoScore = lazyScreen(() => import("@/components/photo-score").then((m) => m.PhotoScore));
 
 export function SeriesShoot({
   sessionId,
@@ -27,6 +31,7 @@ export function SeriesShoot({
   const save = useFaktor((state) => state.saveRingSession);
   const [zoom, setZoom] = useState(false);
   const [pad, setPad] = useState(false);
+  const [photo, setPhoto] = useState(false);
 
   const program = session ? programById(session.programId) : undefined;
   const stage = session && program ? program.stages[session.stageIndex] : undefined;
@@ -140,7 +145,21 @@ export function SeriesShoot({
 
       <SeriesStrip shots={session.current} stage={stage} />
 
-      {face && !pad ? (
+      {face && photo && stage && session.current.length < stage.shotsPerSeries ? (
+        <Suspense fallback={<p className="mt-3 text-sm text-muted">Laster bildetolkning…</p>}>
+          <PhotoScore
+            face={face}
+            room={stage.shotsPerSeries - session.current.length}
+            onCancel={() => setPhoto(false)}
+            onUse={(holes) => {
+              for (const hole of holes) placeAt(hole.x, hole.y);
+              setPhoto(false);
+            }}
+          />
+        </Suspense>
+      ) : null}
+
+      {face && !pad && !photo ? (
         <div className="mt-3">
           {targets > 1 ? (
             <div className="mb-2">
@@ -180,44 +199,56 @@ export function SeriesShoot({
           />
         </div>
       ) : null}
-      {face && pad ? <ScorePad face={face} disabled={full} onScore={addShot} /> : null}
+      {face && pad && !photo ? <ScorePad face={face} disabled={full} onScore={addShot} /> : null}
 
-      <div className="mt-3 flex gap-2">
-        {face && !pad ? (
+      {photo ? null : (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {face && !pad ? (
+            <button
+              type="button"
+              onClick={() => setZoom((value) => !value)}
+              aria-pressed={zoom}
+              className="inline-flex h-11 items-center gap-1 rounded-full border border-line px-3 text-sm"
+            >
+              {zoom ? (
+                <ZoomOut className="size-4" aria-hidden="true" />
+              ) : (
+                <ZoomIn className="size-4" aria-hidden="true" />
+              )}
+              {zoom ? "Hele" : "Zoom"}
+            </button>
+          ) : null}
           <button
             type="button"
-            onClick={() => setZoom((value) => !value)}
-            aria-pressed={zoom}
+            onClick={() => setPad((value) => !value)}
+            aria-pressed={pad}
             className="inline-flex h-11 items-center gap-1 rounded-full border border-line px-3 text-sm"
           >
-            {zoom ? (
-              <ZoomOut className="size-4" aria-hidden="true" />
-            ) : (
-              <ZoomIn className="size-4" aria-hidden="true" />
-            )}
-            {zoom ? "Hele" : "Zoom"}
+            <Keyboard className="size-4" aria-hidden="true" />
+            {pad ? "Skive" : "Tast"}
           </button>
-        ) : null}
-        <button
-          type="button"
-          onClick={() => setPad((value) => !value)}
-          aria-pressed={pad}
-          className="inline-flex h-11 items-center gap-1 rounded-full border border-line px-3 text-sm"
-        >
-          <Keyboard className="size-4" aria-hidden="true" />
-          {pad ? "Skive" : "Tast"}
-        </button>
-        <button
-          type="button"
-          onClick={undo}
-          disabled={!canUndo}
-          className="ml-auto inline-flex h-11 items-center gap-1 rounded-full border border-line px-3 text-sm disabled:opacity-40"
-        >
-          <Undo2 className="size-4" aria-hidden="true" />
-          {session.current.length === 0 && session.sealed.length > 0 ? "Forrige serie" : "Angre"}
-        </button>
-      </div>
-      {full ? (
+          {face && !full ? (
+            <button
+              type="button"
+              onClick={() => setPhoto(true)}
+              className="inline-flex h-11 items-center gap-1 rounded-full border border-line px-3 text-sm"
+            >
+              <Camera className="size-4" aria-hidden="true" />
+              Foto
+            </button>
+          ) : null}
+          <button
+            type="button"
+            onClick={undo}
+            disabled={!canUndo}
+            className="ml-auto inline-flex h-11 items-center gap-1 rounded-full border border-line px-3 text-sm disabled:opacity-40"
+          >
+            <Undo2 className="size-4" aria-hidden="true" />
+            {session.current.length === 0 && session.sealed.length > 0 ? "Forrige serie" : "Angre"}
+          </button>
+        </div>
+      )}
+      {full && !photo ? (
         <button
           type="button"
           onClick={next}

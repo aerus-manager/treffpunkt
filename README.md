@@ -7,6 +7,7 @@ Skytedagbok med NSF-programmene (luftpistol og fin/grov) med helringscoring, og 
 ## Funksjoner
 
 - **NSF-programmer**: sett skuddene på skiva (trykk og dra for å finjustere, verdien vises mens du drar), eller tast ringverdien direkte. Zoom på det svarte, nedtelling for tidsserier, angre også forrige serie.
+- **Ta bilde av skiva**: appen finner det svarte feltet, regner ut målestokken og finner hullene, også to-tre hull som overlapper. Du kontrollerer, retter med et trykk og bruker resultatet i serien. Bildet tolkes på telefonen, sendes ikke noe sted og virker uten nett. Best resultat med bildet tatt rett ovenfra i jevnt lys.
 - **IPSC-driller**: innebygde driller og egne driller, minor/major, stål, no-shoot og prosedyrefeil, Comstock-telling.
 - **Flere skyttere** på samme enhet, hver med egne økter, driller og persrekorder.
 - **Sikkerhetskopi**: last ned / les inn hele dagboken som JSON (slår sammen, sletter ingenting).
