@@ -22,6 +22,7 @@ export type Drill = {
   countMode: CountMode;
   papers: PaperTarget[];
   steel: number;
+  profileId?: string;
 };
 
 export type Shot = {
@@ -49,6 +50,7 @@ export type Run = {
   noShootHits: number;
   procedurals: number;
   note: string;
+  profileId?: string;
 };
 
 export type ScoreBreakdown = {
