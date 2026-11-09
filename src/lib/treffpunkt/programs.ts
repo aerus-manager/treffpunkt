@@ -162,7 +162,7 @@ export const CATEGORIES: { id: CategoryId; name: string; blurb: string }[] = [
   { id: "luft", name: "NSF Luft", blurb: "Luftpistol på 10 meter." },
   { id: "fin-grov", name: "NSF Fin/Grov", blurb: "Patronprogrammene på 25 og 50 meter." },
   { id: "mil", name: "MIL", blurb: "Ingen programmer i denne kategorien ennå." },
-  { id: "felt", name: "Felt", blurb: "Feltløypa er ikke med i denne utgaven." },
+  { id: "felt", name: "Felt", blurb: "Norgesfelt 2026 og Asker+. Treff pluss figur." },
   { id: "ipsc", name: "IPSC", blurb: "Driller med tid, soner og hit factor." },
 ];
 
